@@ -3,7 +3,6 @@
 //
 // SPDX-FileCopyrightText: 2023 Stanford University & Project Contributors
 //
-
 import HealthKit
 
 struct HealthData: Codable {
@@ -14,6 +13,7 @@ struct HealthData: Codable {
     var bodyWeight: Double?
     var sleepHours: Double?
     var heartRate: Double?
+    var insulin: Double?
 }
 
 class HealthDataFetcher {
@@ -26,7 +26,8 @@ class HealthDataFetcher {
               let appleExerciseTime = HKObjectType.quantityType(forIdentifier: .appleExerciseTime),
               let bodyMass = HKObjectType.quantityType(forIdentifier: .bodyMass),
               let heartRate = HKObjectType.quantityType(forIdentifier: .heartRate),
-              let sleepAnalysis = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
+              let sleepAnalysis = HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
+              let insulin = HKObjectType.quantityType(forIdentifier: .insulinDelivery) else {
             completion(false)
             return
         }
@@ -36,7 +37,8 @@ class HealthDataFetcher {
             appleExerciseTime,
             bodyMass,
             heartRate,
-            sleepAnalysis
+            sleepAnalysis,
+            insulin
         ]
 
         healthStore.requestAuthorization(toShare: nil, read: types) { success, _ in
@@ -79,120 +81,120 @@ class HealthDataFetcher {
                     }
                 }
 
-                completion(dailyData)
-            } else {
-                completion([])
-            }
-        }
+ completion(dailyData)		
+            } else {		
+                completion([])		
+            }		
+        }		
 
-        healthStore.execute(query)
-    }
+        healthStore.execute(query)		
+    }		
 
-    func fetchLastTwoWeeksCategoryData(
-        for identifier: HKCategoryTypeIdentifier,
-        completion: @escaping ([Double]) -> Void
-    ) {
-        let predicate = createLastTwoWeeksPredicate()
+    func fetchLastTwoWeeksCategoryData(		
+        for identifier: HKCategoryTypeIdentifier,		
+        completion: @escaping ([Double]) -> Void		
+    ) {		
+        let predicate = createLastTwoWeeksPredicate()		
 
-        guard let sampleType = HKObjectType.categoryType(forIdentifier: identifier) else {
-            return
-        }
+        guard let sampleType = HKObjectType.categoryType(forIdentifier: identifier) else {		
+            return		
+        }		
 
-        let query = HKSampleQuery(
-            sampleType: sampleType,
-            predicate: predicate,
-            limit: HKObjectQueryNoLimit,
-            sortDescriptors: nil
-        ) { _, samples, _ in
-            var dailyData: [Double] = [Double](repeating: 0, count: 14)
-            if let samples = samples as? [HKCategorySample] {
-                for sample in samples {
-                    let startOfSampleDay = Calendar.current.startOfDay(for: sample.startDate)
-                    let distance = Int(Date().timeIntervalSince(startOfSampleDay) / 86400)
-                    guard let minutes = Calendar.current.dateComponents(
-                        [.minute],
-                        from: sample.startDate,
-                        to: sample.endDate
-                    ).minute else {
-                        return
-                    }
+        let query = HKSampleQuery(		
+            sampleType: sampleType,		
+            predicate: predicate,		
+            limit: HKObjectQueryNoLimit,		
+            sortDescriptors: nil		
+        ) { _, samples, _ in		
+            var dailyData: [Double] = [Double](repeating: 0, count: 14)		
+            if let samples = samples as? [HKCategorySample] {		
+                for sample in samples {		
+                    let startOfSampleDay = Calendar.current.startOfDay(for: sample.startDate)		
+                    let distance = Int(Date().timeIntervalSince(startOfSampleDay) / 86400)		
+                    guard let minutes = Calendar.current.dateComponents(		
+                        [.minute],		
+                        from: sample.startDate,		
+                        to: sample.endDate		
+                    ).minute else {		
+                        return		
+                    }		
 
-                    if distance < 14 {
-                        dailyData[distance] = Double(minutes) / 60.0
-                    }
-                }
+                    if distance < 14 {		
+                        dailyData[distance] = Double(minutes) / 60.0		
+                    }		
+                }		
 
-                completion(dailyData)
-            } else {
-                completion([])
-            }
-        }
+                completion(dailyData)		
+            } else {		
+                completion([])		
+            }		
+        }		
 
-        healthStore.execute(query)
-    }
+        healthStore.execute(query)		
+    }		
 
-    func fetchLastTwoWeeksStepCount(completion: @escaping ([Double]) -> Void) {
-        fetchLastTwoWeeksQuantityData(
-            for: .stepCount,
-            unit: HKUnit.count(),
-            options: [.cumulativeSum],
-            completion: completion
-        )
-    }
+    func fetchLastTwoWeeksStepCount(completion: @escaping ([Double]) -> Void) {		
+        fetchLastTwoWeeksQuantityData(		
+            for: .stepCount,		
+            unit: HKUnit.count(),		
+            options: [.cumulativeSum],		
+            completion: completion		
+        )		
+    }		
 
-    func fetchLastTwoWeeksActiveEnergy(completion: @escaping ([Double]) -> Void) {
-        fetchLastTwoWeeksQuantityData(
-            for: .activeEnergyBurned,
-            unit: HKUnit.largeCalorie(),
-            options: [.cumulativeSum],
-            completion: completion
-        )
-    }
-    
-    func fetchLastTwoWeeksExerciseTime(completion: @escaping ([Double]) -> Void) {
-        fetchLastTwoWeeksQuantityData(
-            for: .appleExerciseTime,
-            unit: .minute(),
-            options: [.cumulativeSum],
-            completion: completion
-        )
-    }
-    
-    func fetchLastTwoWeeksBodyWeight(completion: @escaping ([Double]) -> Void) {
-        fetchLastTwoWeeksQuantityData(
-            for: .bodyMass,
-            unit: .pound(),
-            options: [.discreteAverage],
-            completion: completion
-        )
-    }
-    
-    func fetchLastTwoWeeksHeartRate(completion: @escaping ([Double]) -> Void) {
-        fetchLastTwoWeeksQuantityData(
-            for: .heartRate,
-            unit: .count(),
-            options: [.discreteAverage],
-            completion: completion
-        )
-    }
+    func fetchLastTwoWeeksActiveEnergy(completion: @escaping ([Double]) -> Void) {		
+        fetchLastTwoWeeksQuantityData(		
+            for: .activeEnergyBurned,		
+            unit: HKUnit.largeCalorie(),		
+            options: [.cumulativeSum],		
+            completion: completion		
+        )		
+    }		
 
-    func fetchLastTwoWeeksSleep(completion: @escaping ([Double]) -> Void) {
-        fetchLastTwoWeeksCategoryData(for: .sleepAnalysis, completion: completion)
-    }
+    func fetchLastTwoWeeksExerciseTime(completion: @escaping ([Double]) -> Void) {		
+        fetchLastTwoWeeksQuantityData(		
+            for: .appleExerciseTime,		
+            unit: .minute(),		
+            options: [.cumulativeSum],		
+            completion: completion		
+        )		
+    }		
 
-    private func createLastTwoWeeksPredicate() -> NSPredicate {
-        let now = Date()
-        let startDate = Calendar.current.date(byAdding: DateComponents(day: -14), to: now) ?? Date()
-        return HKQuery.predicateForSamples(withStart: startDate, end: now, options: .strictStartDate)
-    }
-}
+    func fetchLastTwoWeeksBodyWeight(completion: @escaping ([Double]) -> Void) {		
+        fetchLastTwoWeeksQuantityData(		
+            for: .bodyMass,		
+            unit: .pound(),		
+            options: [.discreteAverage],		
+            completion: completion		
+        )		
+    }		
 
-extension Date {
-    static func startOfDay() -> Date {
-        Calendar.current.startOfDay(for: Date())
-    }
+    func fetchLastTwoWeeksHeartRate(completion: @escaping ([Double]) -> Void) {		
+        fetchLastTwoWeeksQuantityData(		
+            for: .heartRate,		
+            unit: .count(),		
+            options: [.discreteAverage],		
+            completion: completion		
+        )		
+    }		
 
-    func twoWeeksAgoStartOfDay() -> Date {
-        Calendar.current.date(byAdding: DateComponents(day: -14), to: Date.startOfDay()) ?? Date()
-    }
+    func fetchLastTwoWeeksSleep(completion: @escaping ([Double]) -> Void) {		
+        fetchLastTwoWeeksCategoryData(for: .sleepAnalysis, completion: completion)		
+    }		
+
+    private func createLastTwoWeeksPredicate() -> NSPredicate {		
+        let now = Date()		
+        let startDate = Calendar.current.date(byAdding: DateComponents(day: -14), to: now) ?? Date()		
+        return HKQuery.predicateForSamples(withStart: startDate, end: now, options: .strictStartDate)		
+    }		
+}		
+
+extension Date {		
+    static func startOfDay() -> Date {		
+        Calendar.current.startOfDay(for: Date())		
+    }		
+
+    func twoWeeksAgoStartOfDay() -> Date {		
+        Calendar.current.date(byAdding: DateComponents(day: -14), to: Date.startOfDay()) ?? Date()		
+    }		
 }
