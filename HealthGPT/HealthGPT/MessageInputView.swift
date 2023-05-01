@@ -149,7 +149,13 @@ struct MessageInputView: View {
                                     if let bodyWeight = dayData.bodyWeight {
                                         mainText += " \(bodyWeight) lbs of body weight,"
                                     }
-
+                                    if let glucose = dayData.glucose {
+                                        mainText += " \(glucose) mg/dL of glucose,"
+                                    }
+                                    if let insulin = dayData.insulin {
+                                        mainText += " \(insulin) units of insulin,"
+                                    }
+                                    
                                     mainPrompt += "\(dayData.date): \(mainText.dropLast()) \n"
                                 }
                                 print(mainPrompt)
